@@ -1,0 +1,86 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  Oracle JDeveloper BPEL Designer 
+  
+  Created: Wed May 25 15:19:15 MSK 2016
+  Author:  perm
+  Type: BPEL 2.0 Process
+  Purpose: Asynchronous BPEL Process
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-->
+<process name="ScheduleBPELProcess"
+         targetNamespace="http://xmlns.oracle.com/scheduler_bpel/SchedulerProject/ScheduleBPELProcess"
+         xmlns="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:client="http://xmlns.oracle.com/scheduler_bpel/SchedulerProject/ScheduleBPELProcess"
+         xmlns:ora="http://schemas.oracle.com/xpath/extension"
+         xmlns:ui="http://xmlns.oracle.com/soa/designer"
+         xmlns:bpelx="http://schemas.oracle.com/bpel/extension"
+         xmlns:bpel="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:ns1="http://xmlns.oracle.com/scheduler" xmlns:ns2="http://xmlns.oracle.com/scheduler/types"
+         xml:id="id_1">
+
+    <import ui:processWSDL="true" namespace="http://xmlns.oracle.com/scheduler_bpel/SchedulerProject/ScheduleBPELProcess" location="../WSDLs/ScheduleBPELProcess.wsdl" importType="http://schemas.xmlsoap.org/wsdl/"
+            xml:id="id_2"/>
+    <!-- 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        PARTNERLINKS                                                      
+        List of services participating in this BPEL process               
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    --> 
+    <partnerLinks xml:id="id_3">
+        <!-- 
+      The 'client' role represents the requester of this service. It is 
+      used for callback. The location and correlation information associated
+      with the client role are automatically set using WS-Addressing.
+    -->
+        <partnerLink name="schedulebpelprocess_client" partnerLinkType="client:ScheduleBPELProcess" myRole="ScheduleBPELProcessProvider" partnerRole="ScheduleBPELProcessRequester"
+                     xml:id="id_4"/>
+    </partnerLinks>
+
+    <!-- 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        VARIABLES                                                        
+        List of messages and XML documents used within this BPEL process 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    -->
+    <variables xml:id="id_5">
+        <!-- Reference to the message passed as input during initiation -->
+        <variable name="inputVariable" messageType="client:ScheduleBPELProcessRequestMessage" xml:id="id_6"/>
+
+        <!-- Reference to the message that will be sent back to the requester during callback -->
+        <variable name="outputVariable" messageType="client:ScheduleBPELProcessResponseMessage" xml:id="id_7"/>
+    </variables>
+
+    <!-- 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+       ORCHESTRATION LOGIC                                               
+       Set of activities coordinating the flow of messages across the    
+       services integrated within this business process                  
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    -->
+    <sequence name="main" xml:id="id_8">
+        <!-- Receive input from requestor. (Note: This maps to operation defined in ScheduleBPELProcess.wsdl) -->
+        <receive name="receiveInput" partnerLink="schedulebpelprocess_client" portType="client:ScheduleBPELProcess" operation="process" variable="inputVariable" createInstance="yes"
+                 xml:id="id_9"/>
+        <scope name="ScheduleJob" xml:id="id_10">
+            <bpelx:annotation xml:id="id_11">
+                <bpelx:pattern patternName="bpelx:scheduleJob" xml:id="id_12"></bpelx:pattern>
+            </bpelx:annotation>
+            <variables xml:id="id_13">
+                <variable name="EssInput" messageType="ns1:submitRequestInput" xml:id="id_14"/>
+                <variable name="EssOutput" messageType="ns1:submitRequestOutput" xml:id="id_15"/>
+            </variables>
+            <sequence name="EssSequence" xml:id="id_16">
+                <assign name="EssAssign" xml:id="id_17"></assign>
+                <invoke name="EssInvoke" portType="ns1:ESSWebService" partnerLink="EssService" inputVariable="EssInput"
+                        outputVariable="EssOutput" operation="submitRequest" xml:id="id_18"/>
+            </sequence>
+        </scope>
+        <!-- 
+          Asynchronous callback to the requester. (Note: the callback location and correlation id is transparently handled using WS-addressing.)
+        -->
+        <invoke name="callbackClient" partnerLink="schedulebpelprocess_client" portType="client:ScheduleBPELProcessCallback" operation="processResponse" inputVariable="outputVariable"
+                xml:id="id_19"/>
+    </sequence>
+</process>
